@@ -45,7 +45,7 @@ const createWindow = () => {
   // Create window
   const mainWindow = new BrowserWindow({
     title: 'BingGPT',
-    backgroundColor: isDarkMode ? '#2b2b2b' : '#f3f3f3',
+    backgroundColor: isDarkMode ? '#1c1c1c' : '#eeeeee',
     icon: 'icon.png',
     width: 601,
     height: 800,
@@ -200,14 +200,9 @@ const createWindow = () => {
         label: 'Reset',
         visible: parameters.selectionText.trim().length === 0,
         click: () => {
-          const session = mainWindow.webContents.session
-          session
-            .clearStorageData({
-              storages: ['localstorage', 'cookies'],
-            })
-            .then(() => {
-              mainWindow.reload()
-            })
+          mainWindow.webContents.session.clearStorageData().then(() => {
+            mainWindow.reload()
+          })
         },
       },
       {
@@ -402,6 +397,13 @@ const createWindow = () => {
       }
     }
   })
+  // Replace compose page
+  mainWindow.webContents.on('dom-ready', () => {
+    const url = mainWindow.webContents.getURL()
+    if (url === bingUrl) {
+      mainWindow.webContents.send('replace-compose-page', isDarkMode)
+    }
+  })
 }
 
 app.whenReady().then(() => {
@@ -443,17 +445,18 @@ app.whenReady().then(() => {
         })
     }
   })
-  // Get font size settings
-  ipcMain.on('get-font-size', () => {
+  // Init style
+  ipcMain.on('init-style', () => {
     const fontSize = config.get('fontSize')
-    if (fontSize !== 14) {
-      setTimeout(() => {
+    setTimeout(() => {
+      if (fontSize !== 14) {
         BrowserWindow.getAllWindows()[0].webContents.send(
           'set-font-size',
           fontSize
         )
-      }, 1000)
-    }
+      }
+      BrowserWindow.getAllWindows()[0].webContents.send('set-initial-style')
+    }, 1000)
   })
   // Error message
   ipcMain.on('error', (event, detail) => {
